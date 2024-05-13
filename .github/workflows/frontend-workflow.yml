@@ -51,6 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build application
+        uses: actions/checkout@v3
         run: |
           cd starter/frontend
           docker build -t mp-frontend:$GITHUB_SHA .
