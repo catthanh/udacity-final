@@ -86,10 +86,6 @@ jobs:
     needs: [run-test, run-lint]
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: starter/backend
-
     steps:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -102,6 +98,7 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build, tag, and push image to Amazon ECR
+      working-directory: starter/backend
       run: |
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/backend:${GITHUB_SHA} .
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/backend:${GITHUB_SHA}
@@ -111,13 +108,13 @@ jobs:
         aws eks update-kubeconfig --name cluster --region us-east-1
 
     - name: Set image tag
-      run: |
-        cd starter/backend/k8s
+      working-directory: starter/backend/k8s
+      run:
         kustomize edit set image backend=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/backend:${GITHUB_SHA}
-    - name:  apply to cluster        
-      run:  |
-          cd starter/backend/k8s
-          kustomize build | kubectl apply -f -
+    - name:  apply to cluster    
+      working-directory: starter/backend/k8s
+      run:
+        kustomize build | kubectl apply -f -
 
 
     
