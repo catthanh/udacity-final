@@ -90,6 +90,7 @@ jobs:
       run:
         working-directory: starter/backend
 
+    steps:
     - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
