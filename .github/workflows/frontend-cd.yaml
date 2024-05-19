@@ -123,7 +123,7 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       run: |
         export REACT_APP_MOVIE_API_URL=$(kubectl get services --namespace default backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-        docker build --build-arg=REACT_APP_MOVIE_API_URL=${{ env.REACT_APP_MOVIE_API_URL }} -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA} .
+        docker build --build-arg=REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA} .
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA}
 
     - name: Set image tag and apply to cluster
