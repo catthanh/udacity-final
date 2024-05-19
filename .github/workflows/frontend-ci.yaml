@@ -81,12 +81,6 @@ jobs:
       run:
         working-directory: starter/frontend
 
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: starter/frontend
-
     steps:
     - name: Check out repository
       uses: actions/checkout@v3
