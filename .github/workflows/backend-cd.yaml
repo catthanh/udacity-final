@@ -102,7 +102,6 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build, tag, and push image to Amazon ECR
-      working-directory: starter/backend
       run: |
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/backend:${GITHUB_SHA} .
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/backend:${GITHUB_SHA}
