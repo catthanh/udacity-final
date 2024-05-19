@@ -1,0 +1,140 @@
+name: Frontend Continuous Deployment
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'starter/frontend/**'
+
+env:
+  REACT_APP_MOVIE_API_URL: 
+
+jobs:
+  run-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: starter/frontend
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+    - name: Use Node.js 18
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+    
+    - name: caches npm
+      id: restore-dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          npm-${{ hashFiles('**/package-lock.json') }}
+          npm-
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run test
+      run: CI=true npm test
+
+  run-lint:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: starter/frontend
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+    - name: Use Node.js 18
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: caches npm
+      id: restore-dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          npm-${{ hashFiles('**/package-lock.json') }}
+          npm-
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run lint
+      run: npm run lint
+  
+  build:
+    needs: [run-test, run-lint]
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: starter/frontend
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+    
+    - name: Use Node.js 18
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+    
+    - name: caches npm
+      id: restore-dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          npm-${{ hashFiles('**/package-lock.json') }}
+          npm-
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run test
+      run: CI=true npm test
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build, tag, and push image to Amazon ECR
+      run: |
+        docker build --build-arg=REACT_APP_MOVIE_API_URL=${{ env.REACT_APP_MOVIE_API_URL }} -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA} .
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA}
+
+    - name: Configure kubectl
+      run: |
+        aws eks update-kubeconfig --name cluster --region us-east-1
+
+    - name: Set image tag and apply to cluster
+      run: |
+        cd starter/frontend/k8s
+        kustomize edit set image frontend=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA}
+
+    - name: apply to cluster
+      run:  |
+          cd starter/frontend/k8s
+          kustomize build | kubectl apply -f -
